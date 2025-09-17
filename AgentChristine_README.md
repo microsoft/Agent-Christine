@@ -1,14 +1,21 @@
 # Project
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+Purpose
+The goal of Agent Christine is to help partners selling through the Microsoft Marketplace become self-sufficient in navigating the Azure Marketplace. By embedding expertise gained during the partner engagement into a virtual agent, partners can access timely support, resources, and guidance without needing ongoing direct assistance.
+Benefits
+- Empowers partners to independently manage onboarding, co-sell, transacting, and revenue reconciliation.
+- Provides continuous access to curated deliverables, documentation, and best practices.
+- Enhances partner confidence and accelerates marketplace adoption.
+Agent Christine is built using Copilot Studio and integrates with a partner's resources they download from Partner Center. It can answer partner questions, surface relevant deliverables, and provide proactive alerts about upcoming milestones or missing documentation. This ensures partners have a reliable, intelligent assistant to guide them through their marketplace journey
 
-As the maintainer of this project, please make a few updates:
+## Resources
+For Agent Christine to work as expected, partner will need to:
+- Download the agent .zip and save locally. From CoPilot Studio, the .zip is imported to create the agent in the partner's environment.
+- Download Earnings report from Partner Center
+- Download Revenue report from Partner Center
+- Complete the Marketplace Drive template (or partners existing equivalent)
+- Read Best Practices and Recommendations document 
 
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
 
 ## Contributing
 
