@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Christine — Copilot Studio Agent</title>
+
+  <!-- Open Graph / SEO -->
+  <meta property="og:title" content="Christine — Copilot Studio Agent" />
+  <meta property="og:description" content="Christine is a Copilot Studio agent from Microsoft. Download, install, and explore the Christine agent for automated workflows and assisted developer experiences." />
+  <meta property="og:image" content="https://opengraph.githubassets.com/1/microsoft/Agent-Christine" />
+  <meta property="og:type" content="website" />
+
+  <style>
+    :root{
+      /* Microsoft Fluent-inspired palette */
+      --ms-blue: #0078D4;
+      --ms-blue-600: #005A9E;
+      --ms-teal: #00B7C3;
+      --ms-gray-100: #F3F2F1;
+      --ms-gray-200: #E1DFDD;
+      --ms-gray-700: #201F1E;
+      --ms-accent: #107C10; /* green accent */
+
+      --max-width: 1100px;
+      --radius: 12px;
+      --shadow: 0 6px 20px rgba(32,31,30,0.08);
+      font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--ms-gray-100),white 40%);color:var(--ms-gray-700)}
+
+    .container{max-width:var(--max-width);margin:40px auto;padding:32px}
+
+    header{display:flex;align-items:center;justify-content:space-between;padding:12px 0}
+    .brand{display:flex;align-items:center;gap:14px}
+    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--ms-blue),var(--ms-teal));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;box-shadow:var(--shadow)}
+    .brand h1{font-size:18px;margin:0}
+    .brand p{margin:0;font-size:13px;color:#2b2a29}
+
+    nav a{color:var(--ms-blue-600);text-decoration:none;margin-left:18px;font-weight:600}
+
+    .hero{display:flex;gap:24px;align-items:center;padding:36px;background:white;border-radius:var(--radius);box-shadow:var(--shadow)}
+    .hero-left{flex:1}
+    .title{font-size:28px;margin:0 0 8px}
+    .subtitle{margin:0 0 18px;color:#4b4948}
+
+    .cta{display:flex;gap:12px;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;gap:10px;padding:12px 18px;border-radius:8px;font-weight:700;border:0;cursor:pointer;text-decoration:none}
+    .btn-primary{background:var(--ms-blue);color:white}
+    .btn-outline{background:transparent;color:var(--ms-blue-600);border:2px solid var(--ms-gray-200)}
+    .download-badge{background:linear-gradient(90deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02));padding:8px 12px;border-radius:8px;font-size:13px;color:#fff;display:inline-block}
+
+    .hero-right{width:320px}
+    .card{background:linear-gradient(180deg,white,#fbfbfb);padding:18px;border-radius:12px;border:1px solid var(--ms-gray-200)}
+    .card h3{margin:0 0 6px}
+    .muted{color:#6b6968;font-size:14px}
+
+    .features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-top:24px}
+    .feature{background:white;padding:18px;border-radius:12px;border:1px solid var(--ms-gray-200);box-shadow:0 4px 12px rgba(45,48,50,0.04)}
+    .feature h4{margin:0 0 8px}
+    .feature p{margin:0;color:#4b4948}
+
+    .usage{margin-top:24px;background:white;padding:18px;border-radius:12px;border:1px solid var(--ms-gray-200)}
+    pre{background:#0f1720;color:#e6eef6;padding:16px;border-radius:8px;overflow:auto}
+
+    footer{margin-top:28px;padding:20px 0;color:#6b6968;font-size:13px;text-align:center}
+
+    @media (max-width:800px){
+      .hero{flex-direction:column}
+      .hero-right{width:100%}
+      .container{margin:20px;padding:18px}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true">C</div>
+        <div>
+          <h1>Christine</h1>
+          <p>Copilot Studio agent — Microsoft</p>
+        </div>
+      </div>
+      <nav>
+        <a href="https://github.com/microsoft/Agent-Christine">Repository</a>
+        <a href="https://github.com/microsoft/Agent-Christine/issues">Issues</a>
+        <a href="https://github.com/microsoft/Agent-Christine/releases">Releases</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-left">
+          <h2 id="hero-title" class="title">Christine — your Copilot Studio assistant</h2>
+          <p class="subtitle">Christine is a customizable Copilot Studio agent designed to help developers automate repetitive tasks, generate code snippets, and provide contextual guidance. Built with extensibility and secure defaults, Christine ships with templates and examples to get you started quickly.</p>
+
+          <div class="cta">
+            <a class="btn btn-primary" href="https://github.com/microsoft/Agent-Christine/releases/latest" title="Download Christine from releases">Download Christine</a>
+            <a class="btn btn-outline" href="https://github.com/microsoft/Agent-Christine/releases" title="View all releases">View releases</a>
+            <span class="download-badge">Latest: <strong>Releases</strong></span>
+          </div>
+
+          <div class="muted" style="margin-top:14px">Install guide: unzip the release and follow the README inside the package. See the repository for configuration and Copilot Studio integration instructions.</div>
+        </div>
+
+        <aside class="hero-right">
+          <div class="card">
+            <h3>Quick stats</h3>
+            <div class="muted">Agent version</div>
+            <div style="font-weight:800;margin-top:8px">1.0.0</div>
+            <hr style="margin:12px 0;border:none;border-top:1px solid var(--ms-gray-200)" />
+            <div class="muted">Compatibility</div>
+            <div style="font-weight:700;margin-top:8px">Copilot Studio • GitHub</div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="features" aria-label="features">
+        <div class="feature">
+          <h4>Context aware</h4>
+          <p>Christine uses repository context and prompts to provide actionable suggestions and code-completion features tailored to your project.</p>
+        </div>
+        <div class="feature">
+          <h4>Extensible templates</h4>
+          <p>Ship with customizable templates for common developer workflows: PR descriptions, issue triage scripts, and release notes.</p>
+        </div>
+        <div class="feature">
+          <h4>Secure by default</h4>
+          <p>Designed with strict permission boundaries and configuration options to keep sensitive data safe.</p>
+        </div>
+        <div class="feature">
+          <h4>Easy to deploy</h4>
+          <p>Download the packaged release and follow the included instructions to add Christine to Copilot Studio.</p>
+        </div>
+      </section>
+
+      <section class="usage" aria-label="usage">
+        <h3>Getting started</h3>
+        <p>Example: call Christine to generate a unit test for a function in your repo.</p>
+        <pre><code>1. Download the latest release from:
+   https://github.com/microsoft/Agent-Christine/releases/latest
+2. Unzip and follow README instructions
+3. Add the agent in Copilot Studio and configure the trigger for your repository
+
+Sample prompt to Christine:
+"Create a unit test for the function parseUserInput in repo path src/utils/input.js"
+
+Christine will return a suggested test file and commands to run.</code></pre>
+      </section>
+    </main>
+
+    <footer>
+      <div>Maintained by Microsoft • <a href="https://github.com/microsoft/Agent-Christine/releases">Download / Releases</a></div>
+    </footer>
+  </div>
+</body>
+</html>
