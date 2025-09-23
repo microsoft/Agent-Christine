@@ -1,18 +1,17 @@
 # Project
 
 Purpose
-The goal of Agent Christine is to help partners selling through the Microsoft Marketplace become self-sufficient in navigating the Azure Marketplace. By embedding expertise gained during the partner engagement into a virtual agent, partners can access timely support, resources, and guidance without needing ongoing direct assistance.
+The goal of Agent Christine is to help partners selling through the Microsoft Marketplace become self-sufficient in creating, managing, and navigating the various partner programs. By embedding expertise gained during the partner engagement into a virtual agent, partners can access timely support, resources, and guidance without needing ongoing direct assistance.
 Benefits
 - Empowers partners to independently manage onboarding, co-sell, transacting, and revenue reconciliation.
 - Provides continuous access to curated deliverables, documentation, and best practices.
 - Enhances partner confidence and accelerates marketplace adoption.
-Agent Christine is built using Copilot Studio and integrates with a partner's resources they download from Partner Center. It can answer partner questions, surface relevant deliverables, and provide proactive alerts about upcoming milestones or missing documentation. This ensures partners have a reliable, intelligent assistant to guide them through their marketplace journey
+Agent Christine is built using Copilot Studio and integrates with a partner's resources they download from Partner Center. It can answer partner questions, surface relevant deliverables, and provide proactive alerts about upcoming milestones. This ensures partners have a reliable, intelligent assistant to guide them through their marketplace journey.
 
 ## Resources
 For Agent Christine to work as expected, partner will need to:
-- Download the agent .zip and save locally. From CoPilot Studio, the .zip is imported to create the agent in the partner's environment.
-- Download Earnings report from Partner Center
-- Download Revenue report from Partner Center
+- Download the agent .zip and save locally.
+- From CoPilot Studio, select Agents in the side navigation. Select Import agent. Select Import solution from the top navigation. Browse for the .zip previously saved. Click Import.
 - Complete the Marketplace Drive template (or partners existing equivalent)
 - Read Best Practices and Recommendations document 
 
