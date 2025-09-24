@@ -1,3 +1,10 @@
+---
+
+Agent Christine is offered under the MIT License as open source software and is <ins>not supported</ins> by Microsoft.
+If you need help with this project or would like to report defects or feature requests, use the Issues feature on this GitHub repository.
+
+---
+
 # Project
 
 Purpose
