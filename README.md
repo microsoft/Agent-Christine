@@ -7,20 +7,21 @@ If you need help with this project or would like to report defects or feature re
 
 # Project
 
-Purpose
-The goal of Agent Christine is to help partners selling through the Microsoft Marketplace become self-sufficient in navigating the Azure Marketplace. By embedding expertise gained during the partner engagement into a virtual agent, partners can access timely support, resources, and guidance without needing ongoing direct assistance.
-Benefits
+
+The goal of Agent Christine is to help partners selling through the Microsoft Marketplace become self-sufficient in navigating the Partner Center and the marketplace. Using embedded expertise gained during the partner engagement into a virtual agent, combined with the partner's own data, partners can access timely resources, and guidance without needing ongoing direct assistance.
+
 - Empowers partners to independently manage onboarding, co-sell, transacting, and revenue reconciliation.
 - Provides continuous access to curated deliverables, documentation, and best practices.
 - Enhances partner confidence and accelerates marketplace adoption.
-Agent Christine is built using Copilot Studio and integrates with a partner's resources they download from Partner Center. It can answer partner questions, surface relevant deliverables, and provide proactive alerts about upcoming milestones or missing documentation. This ensures partners have a reliable, intelligent assistant to guide them through their marketplace journey
 
-## Resources
+Agent Christine is built using Copilot Studio and is imported to the partner's environment for complete privacy and confidentiality. The true power of Christine is the ability for a partner to add their own knowledge sources (SharePoint site, docx, xlsx, SOP, etc.) to Christine. Your data plus the curated guidance will give you person, direct responses.
+
+# Resources
 For Agent Christine to work as expected, partner will need to:
 - Download the agent .zip and save locally. From CoPilot Studio, the .zip is imported to create the agent in the partner's environment.
-- Download Earnings report from Partner Center
+- Download Earnings report from Partner Center (using included Trigger)
 - Download Revenue report from Partner Center
-- Complete the Marketplace Drive template (or partners existing equivalent)
+- Complete the Marketplace Drive template (or partner's existing equivalent)
 - Read Best Practices and Recommendations document 
 
 
