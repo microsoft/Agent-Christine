@@ -1,0 +1,1236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.mp.microsoft.com/schema/private-offer/2023-07-15",
+  "title": "Microsoft Product Ingestion Private Offer",
+  "description": "Describes a Private Offer in the Microsoft Product Ingestion API",
+  "allOf": [
+    {
+      "$ref": "https://schema.mp.microsoft.com/schema/resource/2022-07-01"
+    },
+    {
+      "oneOf": [
+        {
+          "$ref": "https://schema.mp.microsoft.com/schema/private-offer-customer/2023-07-15"
+        },
+        {
+          "$ref": "https://schema.mp.microsoft.com/schema/private-offer-csp/2023-07-15"
+        },
+        {
+          "$ref": "https://schema.mp.microsoft.com/schema/private-offer-mpo-channel-partner/2023-07-15"
+        },
+        {
+          "$ref": "https://schema.mp.microsoft.com/schema/private-offer-mpo-originator/2023-07-15"
+        }
+      ]
+    },
+    {
+      "properties": {
+        "offerPricingType": {
+          "type": "string",
+          "enum": [
+            "editExistingOfferPricingOnly",
+            "saasNewCustomizedPlans",
+            "vmSoftwareReservations"
+          ],
+          "default": "editExistingOfferPricingOnly"
+        }
+      },
+      "required": [
+        "offerPricingType"
+      ]
+    },
+    {
+      "if": {
+        "properties": {
+          "offerPricingType": {
+            "const": "vmSoftwareReservations"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "pricing": {
+            "items": {
+              "properties": {
+                "newPlanDetails": {
+                  "not": {
+                    "required": [
+                      "name",
+                      "description"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "https://schema.mp.microsoft.com/schema/resource/2022-07-01": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/resource/2022-07-01",
+      "$comment": "This schema is extended by a resource type schema. We allow additional properties to enable that",
+      "type": "object",
+      "properties": {
+        "resourceName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "id": {
+          "$ref": "https://schema.mp.microsoft.com/schema/durable-id/2022-07-01"
+        },
+        "validations": {
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/validation/2022-07-01"
+          },
+          "readonly": true
+        }
+      },
+      "required": [
+        "$schema"
+      ],
+      "additionalProperties": true
+    },
+    "https://schema.mp.microsoft.com/schema/private-offer-customer/2023-07-15": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/private-offer-customer/2023-07-15",
+      "title": "Microsoft Product Ingestion Private Offer",
+      "description": "Describes a Private Offer in the Microsoft Product Ingestion API",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[^\\!\\\u003C\\\u003E\\^\\[\\]\\@\\#\\%\\/\\x00-\\x1F\\x7E-\\xFF]\u002B$",
+          "maxLength": 128
+        },
+        "privateOfferType": {
+          "type": "string",
+          "const": "customerPromotion"
+        },
+        "upgradedFrom": {
+          "$ref": "https://schema.mp.microsoft.com/schema/private-offer-promotion-reference/2022-07-01"
+        },
+        "variableStartDate": {
+          "type": "boolean"
+        },
+        "start": {
+          "type": "string",
+          "format": "date"
+        },
+        "end": {
+          "type": "string",
+          "format": "date"
+        },
+        "acceptBy": {
+          "type": "string",
+          "format": "date"
+        },
+        "preparedBy": {
+          "type": "string",
+          "format": "email"
+        },
+        "notificationContacts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "live",
+            "deleted"
+          ]
+        },
+        "subState": {
+          "type": "string",
+          "enum": [
+            "pendingAcceptance",
+            "accepted"
+          ]
+        },
+        "termsAndConditionsDocSasUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "beneficiaries": {
+          "type": "array",
+          "maxItems": 1,
+          "items": {
+            "allOf": [
+              {
+                "$ref": "https://schema.mp.microsoft.com/schema/private-offer-beneficiary/2022-07-01"
+              }
+            ],
+            "properties": {
+              "beneficiaryRecipients": {
+                "items": {
+                  "properties": {
+                    "recipientType": {
+                      "const": "billingGroup"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "pricing": {
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-pricing/2023-07-15",
+            "not": {
+              "required": [
+                "markupPercentage"
+              ]
+            }
+          }
+        },
+        "lastModified": {
+          "type": "string",
+          "format": "date"
+        },
+        "acceptanceLinks": {
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-acceptance-link/2022-07-01"
+          }
+        },
+        "eTag": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "state"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "not": {
+              "properties": {
+                "start": {
+                  "const": null
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "variableStartDate": {
+                "not": {
+                  "const": true
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "not": {
+              "properties": {
+                "variableStartDate": {
+                  "const": true
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "start"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "live"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "beneficiaries": {
+                "minItems": 1
+              },
+              "pricing": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "end",
+              "acceptBy",
+              "beneficiaries",
+              "pricing"
+            ]
+          }
+        }
+      ]
+    },
+    "https://schema.mp.microsoft.com/schema/private-offer-csp/2023-07-15": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/private-offer-csp/2023-07-15",
+      "title": "Microsoft Product Ingestion Private Offer",
+      "description": "Describes a Private Offer in the Microsoft Product Ingestion API",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[^\\!\\\u003C\\\u003E\\^\\[\\]\\@\\#\\%\\/\\x00-\\x1F\\x7E-\\xFF]\u002B$",
+          "maxLength": 128
+        },
+        "privateOfferType": {
+          "type": "string",
+          "const": "cspPromotion"
+        },
+        "upgradedFrom": {
+          "$ref": "https://schema.mp.microsoft.com/schema/private-offer-promotion-reference/2022-07-01"
+        },
+        "variableStartDate": {
+          "type": "boolean"
+        },
+        "start": {
+          "type": "string",
+          "format": "date"
+        },
+        "end": {
+          "type": "string",
+          "format": "date"
+        },
+        "preparedBy": {
+          "type": "string",
+          "format": "email"
+        },
+        "notificationContacts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "live",
+            "withdrawn",
+            "deleted"
+          ]
+        },
+        "beneficiaries": {
+          "type": "array",
+          "maxItems": 150,
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-beneficiary/2022-07-01",
+            "properties": {
+              "beneficiaryRecipients": {
+                "items": {
+                  "properties": {
+                    "recipientType": {
+                      "const": "cspCustomer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "pricing": {
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-pricing/2023-07-15",
+            "not": {
+              "required": [
+                "markupPercentage"
+              ]
+            }
+          }
+        },
+        "lastModified": {
+          "type": "string",
+          "format": "date"
+        },
+        "eTag": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "state"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "termsAndConditionsDocSasUrl"
+            ]
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "acceptBy"
+            ]
+          }
+        },
+        {
+          "if": {
+            "not": {
+              "properties": {
+                "start": {
+                  "const": null
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "variableStartDate": {
+                "not": {
+                  "const": true
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "not": {
+              "properties": {
+                "variableStartDate": {
+                  "const": true
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "start"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "live"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "beneficiaries": {
+                "minItems": 1
+              },
+              "pricing": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "end",
+              "beneficiaries",
+              "pricing"
+            ]
+          }
+        }
+      ]
+    },
+    "https://schema.mp.microsoft.com/schema/private-offer-mpo-channel-partner/2023-07-15": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/private-offer-mpo-channel-partner/2023-07-15",
+      "title": "Microsoft Product Ingestion MultiParty Private Offer",
+      "description": "Describes a MultiParty Private Offer in the Microsoft Product Ingestion API",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[\\x20-\\x7F]\u002B[^\\!\\\u003E\\^\\[\\\u003E\\!\\@\\#\\%\\/\\]]$",
+          "maxLength": 128
+        },
+        "privateOfferType": {
+          "type": "string",
+          "const": "multipartyPromotionChannelPartner"
+        },
+        "variableStartDate": {
+          "type": "boolean"
+        },
+        "start": {
+          "type": "string",
+          "format": "date"
+        },
+        "end": {
+          "type": "string",
+          "format": "date"
+        },
+        "acceptBy": {
+          "type": "string",
+          "format": "date"
+        },
+        "notificationContacts": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "preparedBy": {
+          "type": "string",
+          "format": "email"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "live"
+          ]
+        },
+        "subState": {
+          "type": "string",
+          "enum": [
+            "pendingAcceptance",
+            "accepted"
+          ]
+        },
+        "originatorTermsAndConditionsDocs": {
+          "description": "The combined size of originatorTermsAndConditionsDocs and termsAndConditionsDocs cannot exceed 5. Objects from this array can not be deleted and must be deleted by the originator.",
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-terms-doc/2023-07-15"
+          }
+        },
+        "termsAndConditionsDocs": {
+          "description": "The combined size of originatorTermsAndConditionsDocs and termsAndConditionsDocs cannot exceed 5.",
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-terms-doc/2023-07-15"
+          }
+        },
+        "beneficiaries": {
+          "type": "array",
+          "maxItems": 1,
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-beneficiary/2022-07-01",
+            "properties": {
+              "beneficiaryRecipients": {
+                "items": {
+                  "properties": {
+                    "recipientType": {
+                      "const": "billingGroup"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "partners": {
+          "type": "array",
+          "maxItems": 1,
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-partner/2023-07-15"
+          }
+        },
+        "originatorPricing": {
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-pricing/2023-07-15",
+            "required": [
+              "markupPercentage"
+            ]
+          }
+        },
+        "acceptanceLinks": {
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-acceptance-link/2022-07-01"
+          }
+        },
+        "lastModified": {
+          "type": "string",
+          "format": "date"
+        },
+        "notes": {
+          "type": "string",
+          "pattern": "^[^\\!\\\u003C\\\u003E\\^\\[\\]\\@\\#\\%\\/\\x00-\\x1F\\x7E-\\xFF]\u002B$",
+          "maxLength": 60
+        },
+        "eTag": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "state",
+        "id"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "start"
+            ]
+          },
+          "then": {
+            "properties": {
+              "variableStartDate": {
+                "not": {
+                  "const": true
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "not": {
+              "properties": {
+                "variableStartDate": {
+                  "const": true
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "start"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "live"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "beneficiaries": {
+                "minItems": 1
+              },
+              "originatorPricing": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "end",
+              "acceptBy",
+              "beneficiaries",
+              "originatorPricing",
+              "name",
+              "preparedBy",
+              "eTag"
+            ]
+          }
+        }
+      ]
+    },
+    "https://schema.mp.microsoft.com/schema/private-offer-mpo-originator/2023-07-15": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/private-offer-mpo-originator/2023-07-15",
+      "title": "Microsoft Product Ingestion MultiParty Private Offer",
+      "description": "Describes a MultiParty Private Offer in the Microsoft Product Ingestion API",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[^\\!\\\u003C\\\u003E\\^\\[\\]\\@\\#\\%\\/\\x00-\\x1F\\x7E-\\xFF]\u002B$",
+          "maxLength": 128
+        },
+        "privateOfferType": {
+          "type": "string",
+          "const": "multipartyPromotionOriginator"
+        },
+        "upgradedFrom": {
+          "$ref": "https://schema.mp.microsoft.com/schema/private-offer-promotion-reference/2022-07-01"
+        },
+        "variableStartDate": {
+          "type": "boolean"
+        },
+        "start": {
+          "type": "string",
+          "format": "date"
+        },
+        "end": {
+          "type": "string",
+          "format": "date"
+        },
+        "acceptBy": {
+          "type": "string",
+          "format": "date"
+        },
+        "notificationContacts": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "live",
+            "deleted"
+          ]
+        },
+        "subState": {
+          "type": "string",
+          "enum": [
+            "pendingPartnerAction",
+            "pendingAcceptance",
+            "accepted"
+          ]
+        },
+        "termsAndConditionsDocs": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-terms-doc/2023-07-15"
+          }
+        },
+        "beneficiaries": {
+          "type": "array",
+          "maxItems": 1,
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-beneficiary/2022-07-01",
+            "properties": {
+              "beneficiaryRecipients": {
+                "items": {
+                  "properties": {
+                    "recipientType": {
+                      "const": "billingGroup"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "partners": {
+          "type": "array",
+          "maxItems": 1,
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-partner/2023-07-15",
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "pricing": {
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-pricing/2023-07-15",
+            "not": {
+              "required": [
+                "markupPercentage"
+              ]
+            }
+          }
+        },
+        "lastModified": {
+          "type": "string",
+          "format": "date"
+        },
+        "notes": {
+          "type": "string",
+          "pattern": "^[^\\!\\\u003C\\\u003E\\^\\[\\]\\@\\#\\%\\/\\x00-\\x1F\\x7E-\\xFF]\u002B$",
+          "maxLength": 60
+        },
+        "eTag": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "start"
+            ]
+          },
+          "then": {
+            "properties": {
+              "variableStartDate": {
+                "not": {
+                  "const": true
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "not": {
+              "properties": {
+                "variableStartDate": {
+                  "const": true
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "start"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "live"
+              }
+            },
+            "not": {
+              "required": [
+                "upgradedFrom"
+              ]
+            }
+          },
+          "then": {
+            "properties": {
+              "beneficiaries": {
+                "minItems": 1
+              },
+              "pricing": {
+                "minItems": 1
+              },
+              "partners": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "end",
+              "acceptBy",
+              "beneficiaries",
+              "pricing",
+              "name"
+            ]
+          }
+        }
+      ]
+    },
+    "https://schema.mp.microsoft.com/schema/durable-id/2022-07-01": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/durable-id/2022-07-01",
+      "description": "A durable-id to an existing resource.",
+      "type": "string",
+      "pattern": "^[a-z](-?[a-z0-9]\u002B)*/[a-z0-9-]\u002B(\\/?[a-z0-9-])*$"
+    },
+    "https://schema.mp.microsoft.com/schema/validation/2022-07-01": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/validation/2022-07-01",
+      "allOf": [
+        {
+          "$ref": "https://schema.mp.microsoft.com/schema/inner-error/2022-07-01"
+        },
+        {
+          "properties": {
+            "$schema": {
+              "$ref": "https://schema.mp.microsoft.com/schema/schema-uri/2022-07-01"
+            },
+            "level": {
+              "type": "string",
+              "enum": [
+                "informational",
+                "warning"
+              ]
+            }
+          },
+          "required": [
+            "level"
+          ]
+        }
+      ]
+    },
+    "https://schema.mp.microsoft.com/schema/inner-error/2022-07-01": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/inner-error/2022-07-01",
+      "type": "object",
+      "properties": {
+        "resourceId": {
+          "$ref": "https://schema.mp.microsoft.com/schema/resource-reference/2022-07-01"
+        },
+        "code": {
+          "type": "string",
+          "readOnly": true,
+          "enum": [
+            "businessValidationError",
+            "collectionLimitExceeded",
+            "invalidId",
+            "invalidEntityStatus",
+            "invalidRequest",
+            "invalidResource",
+            "invalidState",
+            "notDeployed",
+            "notSupported",
+            "operationCanceled",
+            "productLocked",
+            "resourceNotFound",
+            "schemaValidationError"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/inner-error/2022-07-01"
+          }
+        }
+      },
+      "required": [
+        "code"
+      ]
+    },
+    "https://schema.mp.microsoft.com/schema/schema-uri/2022-07-01": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/schema-uri/2022-07-01",
+      "title": "Product Ingestion schema uri",
+      "type": "string",
+      "pattern": "^https://schema\\.mp.microsoft\\.com/schema/[a-z][a-z0-9]\u002B(?:-[a-z0-9]\u002B)*/\\d{4}(?:-\\d\\d){2}(-preview\\d\u002B)?$"
+    },
+    "https://schema.mp.microsoft.com/schema/resource-reference/2022-07-01": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/resource-reference/2022-07-01",
+      "oneOf": [
+        {
+          "$ref": "https://schema.mp.microsoft.com/schema/durable-id/2022-07-01"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "externalId": {
+              "description": "ExternalId for product and plan references. Property reference must be named product or plan.",
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-_]{2,49}$",
+              "minLength": 3,
+              "maxLength": 50,
+              "$example": {
+                "plan": {
+                  "externalId": "customerNamedPlan123"
+                }
+              }
+            }
+          },
+          "required": [
+            "externalId"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "resourceName": {
+              "description": "Resource Name that can be referenced using this value by another resource.",
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]\u002B$",
+              "minLength": 1,
+              "maxLength": 50,
+              "$example": {
+                "plan": {
+                  "resourceName": "resourcePlan1"
+                }
+              }
+            }
+          },
+          "required": [
+            "resourceName"
+          ]
+        }
+      ]
+    },
+    "https://schema.mp.microsoft.com/schema/private-offer-promotion-reference/2022-07-01": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/private-offer-promotion-reference/2022-07-01",
+      "title": "Microsoft Product Ingestion Private Offer Promotion Reference",
+      "description": "Describes a promotion reference for a Private Offer in the Microsoft Product Ingestion API",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "https://schema.mp.microsoft.com/schema/private-offer-pricing/2023-07-15": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/private-offer-pricing/2023-07-15",
+      "title": "Microsoft Product Ingestion Private Offer Pricing Configuration",
+      "description": "Describes the pricing for a private offer in the Microsoft Product Ingestion API",
+      "type": "object",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "product": {
+              "$ref": "https://schema.mp.microsoft.com/schema/resource-reference/2022-07-01"
+            },
+            "plan": {
+              "$ref": "https://schema.mp.microsoft.com/schema/resource-reference/2022-07-01"
+            },
+            "discountType": {
+              "type": "string",
+              "enum": [
+                "percentage",
+                "absolute"
+              ],
+              "default": "percentage"
+            },
+            "discountPercentage": {
+              "type": "number",
+              "minimum": 0.01,
+              "maximum": 100,
+              "multipleOf": 0.01
+            },
+            "markupPercentage": {
+              "type": "number",
+              "minimum": 0.00000001,
+              "maximum": 100,
+              "multipleOf": 0.00000001
+            },
+            "planName": {
+              "type": "string"
+            },
+            "productName": {
+              "type": "string"
+            },
+            "priceDetails": {
+              "$ref": "https://schema.mp.microsoft.com/schema/resource-reference/2022-07-01"
+            }
+          },
+          "required": [
+            "product",
+            "discountType"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "discountType": {
+                    "const": "absolute"
+                  }
+                }
+              },
+              "then": {
+                "allOf": [
+                  {
+                    "required": [
+                      "plan",
+                      "priceDetails"
+                    ]
+                  },
+                  {
+                    "not": {
+                      "required": [
+                        "discountPercentage"
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "discountType": {
+                    "const": "percentage"
+                  }
+                }
+              },
+              "then": {
+                "allOf": [
+                  {
+                    "required": [
+                      "discountPercentage"
+                    ]
+                  },
+                  {
+                    "not": {
+                      "required": [
+                        "priceDetails"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "product": {
+              "$ref": "https://schema.mp.microsoft.com/schema/resource-reference/2022-07-01"
+            },
+            "basePlan": {
+              "$ref": "https://schema.mp.microsoft.com/schema/resource-reference/2022-07-01"
+            },
+            "newPlanDetails": {
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                }
+              }
+            },
+            "discountType": {
+              "const": "absolute"
+            },
+            "markupPercentage": {
+              "type": "number",
+              "minimum": 0.00000001,
+              "maximum": 100,
+              "multipleOf": 0.00000001
+            },
+            "basePlanName": {
+              "type": "string"
+            },
+            "productName": {
+              "type": "string"
+            },
+            "priceDetails": {
+              "$ref": "https://schema.mp.microsoft.com/schema/resource-reference/2022-07-01"
+            }
+          },
+          "required": [
+            "product",
+            "basePlan",
+            "discountType",
+            "priceDetails"
+          ]
+        }
+      ]
+    },
+    "https://schema.mp.microsoft.com/schema/private-offer-acceptance-link/2022-07-01": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/private-offer-acceptance-link/2022-07-01",
+      "title": "Microsoft Product Ingestion Private Offer Acceptance Link",
+      "description": "Describes an acceptance link for a beneficiary of a Private Offer in the Microsoft Product Ingestion API",
+      "type": "object",
+      "properties": {
+        "beneficiaryId": {
+          "type": "string"
+        },
+        "link": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "beneficiaryId",
+        "link"
+      ]
+    },
+    "https://schema.mp.microsoft.com/schema/private-offer-beneficiary/2022-07-01": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/private-offer-beneficiary/2022-07-01",
+      "title": "Microsoft Product Ingestion Private Offer Beneficiary",
+      "description": "Describes a Beneficiary for a Private Offer in the Microsoft Product Ingestion API",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "beneficiaryRecipients": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/beneficiaryRecipient"
+          }
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "https://schema.mp.microsoft.com/schema/private-offer-terms-doc/2023-07-15": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/private-offer-terms-doc/2023-07-15",
+      "title": "Microsoft Product Ingestion Private Offer Terms Document",
+      "description": "Describes a Terms and Conditions Document for a Private Offer in the Microsoft Product Ingestion API",
+      "type": "object",
+      "properties": {
+        "fileName": {
+          "type": "string",
+          "pattern": "^[\\x20-\\x7F]\u002B[^\\!\\\u003E\\^\\[\\\u003E\\!\\@\\#\\%\\/\\]]$",
+          "maxLength": 128
+        },
+        "customerFacingDocumentName": {
+          "type": "string",
+          "pattern": "^[\\x20-\\x7F]\u002B[^\\!\\\u003E\\^\\[\\\u003E\\!\\@\\#\\%\\/\\]]$",
+          "maxLength": 100
+        },
+        "sasUrl": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "fileName",
+        "customerFacingDocumentName",
+        "sasUrl"
+      ]
+    },
+    "https://schema.mp.microsoft.com/schema/private-offer-partner/2023-07-15": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/private-offer-partner/2023-07-15",
+      "title": "Microsoft Product Ingestion Private Offer Partner",
+      "description": "Describes a partner for a Private Offer in the Microsoft Product Ingestion API",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "partnerName": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        }
+      }
+    },
+    "beneficiaryRecipient": {
+      "required": [
+        "id",
+        "recipientType"
+      ],
+      "id": {
+        "type": "string"
+      },
+      "recipientType": {
+        "enum": [
+          "cspCustomer"
+        ]
+      }
+    }
+  }
+}
