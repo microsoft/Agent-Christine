@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>End-to-End Guide to Using the Azure Marketplace Private Offer Submission API</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }
+        h1 { color: #333; }
+        h2 { color: #555; }
+        pre { background: #f4f4f4; border: 1px solid #ddd; padding: 10px; overflow: auto; }
+        code { font-family: Consolas, monospace; }
+        ul { list-style-type: disc; margin-left: 20px; }
+        strong { font-weight: bold; }
+        .json-code { background: #f8f8f8; }
+    </style>
+</head>
+<body>
+    <h1>End-to-End Guide to Using the Azure Marketplace Private Offer Submission API</h1>
+
+<p>This guide provides a comprehensive, step-by-step walkthrough for using the Private Offer Submission API in the Azure Marketplace. It focuses on the submission process for creating, managing, and submitting private offers, including ISV-to-customer, ISV-to-CSP, and multiparty private offers (MPOs). The content is based on official Microsoft documentation and schemas, expanded with full examples for practical implementation. Private offers allow publishers (ISVs) to offer customized pricing, terms, and configurations to specific customers or CSP partners, with transactions handled through the Microsoft Marketplace.</p>
+
+<p>Private offers provide benefits like negotiated pricing, flexible billing, time-bound discounts, and bundling of up to 10 products. They support various product types, including SaaS, Azure Virtual Machines, Azure Applications, Professional Services, and Virtual Machine Software Reservations (VMSR).</p>
+
+<p>For customers, purchases count toward Azure commitments like MACC, and the process involves preparation, acceptance, and purchase via the Azure portal.</p>
+
+<p><strong>Note:</strong> This API is part of the Microsoft Partner Center Product Ingestion APIs and requires a Partner Center account. It uses Microsoft Entra ID for authentication. The guide assumes you are a publisher (ISV or channel partner) with the necessary roles.</p>
+
+<h2>Prerequisites</h2>
+
+<p>Before using the API, ensure the following:</p>
+
+<h3>Account and Role Setup</h3>
+<ul>
+    <li><strong>Publisher Role</strong>: You must be enrolled in the Microsoft AI Cloud Partner Program and have a Marketplace account in Partner Center. Roles include Marketplace developer, manager, or account owner. The Microsoft Entra ID app must be assigned the Manager role in Partner Center.</li>
+    <li><strong>Tax Profile</strong>: Complete and verify your tax profile in Partner Center (under Account settings > Payout and tax profiles). For US/UK/Canada markets, specific requirements apply (e.g., resale certificates for US).</li>
+    <li><strong>Public Offers</strong>: Your products must be published in the Marketplace. A public transactable plan is typically required for SaaS, VM, and Azure Applications, but Professional Services offers can be private-only. Opt into CSP reselling if targeting CSP partners.</li>
+    <li><strong>Customer/CSP Readiness</strong>: For customers, ensure they have an eligible Azure billing account (MCA, EA, or MOSP), proper roles (e.g., billing account owner for acceptance), and run the private offer eligibility report to verify settings like Marketplace purchase policy and payment instruments. Provide them with the billing account ID (format example: <code>ac357579-e860-54a6-80b3-66958aea67fe:7471d04e-f696-4d20-af34-fa78d51e419c_2019-05-31</code>—retrieve from Azure Portal > Cost Management + Billing > Billing accounts).</li>
+</ul>
+
+<h3>Authentication Setup</h3>
+<ul>
+    <li>Create a Microsoft Entra ID application associated with your Partner Center account.</li>
+    <li>Obtain: Tenant ID, Client ID, and Client Secret.</li>
+    <li>Use the client credentials flow to get an access token (expires in 60 minutes; refresh as needed).</li>
+</ul>
+
+<p><strong>Example Token Request (using curl, v1 endpoint as per private offers doc):</strong></p>
+<pre><code>curl -X POST \  'https://login.microsoftonline.com/<tenant_id>/oauth2/token' 
+  -H 'Content-Type: application/x-www-form-urlencoded' 
+  -d 'grant_type=client_credentials&client_id=<client_id>&client_secret=<client_secret>&resource=https://graph.microsoft.com/'
+</code></pre><p>Response:</p>
+<pre class="json-code"><code>{  "token_type": "Bearer",
+  "expires_in": 3600,
+  "access_token": "<your_access_token>"
+}
+</code></pre><p>Alternatively, use v2 endpoint:</p>
+<pre><code>curl -X POST \  'https://login.microsoftonline.com/<tenant_id>/oauth2/v2.0/token' 
+  -H 'Content-Type: application/x-www-form-urlencoded' 
+  -d 'grant_type=client_credentials&client_id=<client_id>&client_secret=<client_secret>&scope=https://graph.microsoft.com/.default'
+</code></pre><p>Include the token in API requests: <code>Authorization: Bearer <access_token></code>.</p>
+
+<h3>Tools and Environment</h3>
+<ul>
+    <li>Use tools like Postman or curl for API calls.</li>
+    <li>Familiarize yourself with JSON schemas for requests (see Schemas section).</li>
+    <li>Poll job status no more than once per minute.</li>
+</ul>
+
+<h2>Step 1: Retrieve Products and Plans</h2>
+
+<p>Before creating a private offer, query your available products and plans.</p>
+
+<h3>Endpoints</h3>
+<ul>
+    <li><strong>Get All Products</strong>: <code>GET https://graph.microsoft.com/rp/product-ingestion/product?$version=2022-07-01</code></li>
+    <li><strong>Get Plans for a Product</strong>: <code>GET https://graph.microsoft.com/rp/product-ingestion/plan?product=<product-id>&$version=2022-07-01</code></li>
+</ul>
+
+<p><strong>Example Request (Get Products):</strong></p>
+<pre><code>curl -X GET \  'https://graph.microsoft.com/rp/product-ingestion/product?$version=2022-07-01' 
+  -H 'Authorization: Bearer <access_token>'
+</code></pre><p><strong>Example Response:</strong></p>
+<pre class="json-code"><code>{  "value": [
+    {
+      "id": "product/34771906-9711-4196-9f60-4af380fd5042",
+      "name": "My SaaS Product",
+      "type": "saas"
+    }
+  ]
+}
+</code></pre><p>Use the <code>product-id</code> and <code>plan-id</code> in subsequent requests.</p>
+
+<h2>Step 2: Create a Private Offer</h2>
+
+<p>Private offers are created via a configuration endpoint that starts a job. Poll the job status, then retrieve results. There are three main types:</p>
+<ul>
+    <li><strong>ISV-to-Customer</strong>: Direct to end-customer.</li>
+    <li><strong>ISV-to-CSP</strong>: To CSP partners for resale.</li>
+    <li><strong>Multiparty (MPO)</strong>: Collaborative with a channel partner. ISV must submit first as originator; channel partner cannot create independently.</li>
+</ul>
+
+<p>All use the same endpoint: <code>POST https://graph.microsoft.com/rp/product-ingestion/configure?$version=2022-07-01</code></p>
+
+<h3>General Request Structure</h3>
+<ul>
+    <li>Body schema: <code>https://schema.mp.microsoft.com/schema/configure/2022-07-01</code></li>
+    <li>Include a <code>resources</code> array with the private offer details.</li>
+</ul>
+
+<p>Key fields:</p>
+<ul>
+    <li><code>privateOfferType</code>: <code>customerPromotion</code> (ISV-to-customer), <code>cspPromotion</code> (ISV-to-CSP), <code>multipartyPromotionOriginator</code> (MPO ISV), <code>multipartyPromotionChannelPartner</code> (MPO Seller).</li>
+    <li><code>offerPricingType</code>: <code>editExistingOfferPricingOnly</code> (discount on existing; only valid for VM images and Azure apps), <code>saasNewCustomizedPlans</code> (custom SaaS plans; only for SaaS), <code>vmSoftwareReservations</code> (VMSR).</li>
+    <li><code>state</code>: <code>draft</code> or <code>live</code> (to submit).</li>
+    <li><code>beneficiaries</code>: Customer/CSP IDs (use exact billing account ID format from eligibility report or portal).</li>
+    <li><code>pricing</code>: Array of discounts/margins (percentage or absolute).</li>
+    <li><code>termsAndConditionsDocs</code>: SAS URLs for custom terms (PDF format recommended; must be readable by Microsoft service).</li>
+</ul>
+
+<p>For MPO:</p>
+<ul>
+    <li>ISV creates first (originator).</li>
+    <li>Channel partner completes (seller), adding markup.</li>
+</ul>
+
+<h3>Example 1: ISV-to-Customer Private Offer (Percentage Discount on SaaS)</h3>
+<pre class="json-code"><code>{  "$schema": "https://schema.mp.microsoft.com/schema/configure/2022-07-01",
+  "resources": [
+    {
+      "$schema": "https://schema.mp.microsoft.com/schema/private-offer/2023-07-15",
+      "name": "CustomerPrivateOffer",
+      "privateOfferType": "customerPromotion",
+      "state": "live",
+      "offerPricingType": "editExistingOfferPricingOnly",
+      "variableStartDate": true,
+      "end": "2026-12-31",
+      "acceptBy": "2025-12-31",
+      "notificationContacts": ["customer@contoso.com"],
+      "beneficiaries": [
+        {
+          "id": "ac357579-e860-54a6-80b3-66958aea67fe:7471d04e-f696-4d20-af34-fa78d51e419c_2019-05-31",
+          "description": "Customer Billing Account"
+        }
+      ],
+      "pricing": [
+        {
+          "product": "product/34771906-9711-4196-9f60-4af380fd5042",
+          "plan": "plan/basic",
+          "discountType": "percentage",
+          "discountPercentage": 10
+        }
+      ],
+      "termsAndConditionsDocs": [
+        {
+          "sasUrl": "https://blob.storage.azure.com/terms/terms.pdf?sas-token",
+          "fileName": "terms.pdf",
+          "customerFacingDocumentName": "Custom Terms"
+        }
+      ],
+      "notes": "10% discount for 1 year"
+    }
+  ]
+}
+</code></pre><h3>Example 2: ISV-to-CSP Private Offer (Margin for Resale)</h3>
+<pre class="json-code"><code>{  "$schema": "https://schema.mp.microsoft.com/schema/configure/2022-07-01",
+  "resources": [
+    {
+      "$schema": "https://schema.mp.microsoft.com/schema/private-offer/2023-07-15",
+      "name": "CSPPrivateOffer",
+      "privateOfferType": "cspPromotion",
+      "state": "live",
+      "variableStartDate": false,
+      "start": "2025-01-01",
+      "end": "2025-12-31",
+      "notificationContacts": ["csp@partner.com"],
+      "beneficiaries": [
+        {
+          "id": "csp-partner-id",
+          "description": "CSP Partner"
+        }
+      ],
+      "pricing": [
+        {
+          "product": "product/34771906-9711-4196-9f60-4af380fd5042",
+          "plan": "plan/pro",
+          "discountType": "percentage",
+          "discountPercentage": 15
+        }
+      ],
+      "notes": "15% margin for CSP resale"
+    }
+  ]
+}
+</code></pre><h3>Example 3: MPO Creation (ISV Originator - Absolute Pricing for SaaS Custom Plan)</h3>
+<p>First, retrieve base pricing: <code>GET https://graph.microsoft.com/rp/product-ingestion/price-and-availability-private-offer-plan/{productId}?plan={planId}&$version=2023-07-15</code></p>
+<p>Then:</p>
+<pre class="json-code"><code>{  "$schema": "https://schema.mp.microsoft.com/schema/configure/2022-07-01",
+  "resources": [
+    {
+      "$schema": "https://schema.mp.microsoft.com/schema/private-offer-mpo-originator/2023-07-15",
+      "name": "MPOOriginatorOffer",
+      "state": "live",
+      "privateOfferType": "multipartyPromotionOriginator",
+      "offerPricingType": "saasNewCustomizedPlans",
+      "customerContractRenewal": false,
+      "variableStartDate": true,
+      "end": "2026-06-30",
+      "acceptBy": "2025-06-30",
+      "termsAndConditionsDocs": [
+        {
+          "sasUrl": "https://blob.storage.azure.com/terms/isv-terms.pdf?sas-token",
+          "fileName": "isv-terms.pdf",
+          "customerFacingDocumentName": "ISV Terms"
+        }
+      ],
+      "notificationContacts": ["isv@contoso.com"],
+      "beneficiaries": [
+        {
+          "id": "ac357579-e860-54a6-80b3-66958aea67fe:7471d04e-f696-4d20-af34-fa78d51e419c_2019-05-31",
+          "description": "End Customer"
+        }
+      ],
+      "partners": [
+        {
+          "id": "channel-partner-id",
+          "partnerName": "Channel Partner Inc.",
+          "location": "United States"
+        }
+      ],
+      "pricing": [
+        {
+          "product": "product/7ba807c8-386a-4efe-80f1-b97bf8a554f8",
+          "discountType": "absolute",
+          "priceDetails": {
+            "resourceName": "customSaaSPricing",
+            "$schema": "https://schema.mp.microsoft.com/schema/price-and-availability-private-offer-plan/2023-07-15",
+            "recurrentPrice": {
+              "billingTerm": "monthly",
+              "price": 500.00
+            },
+            "customMeters": [
+              {
+                "meterId": "meter1",
+                "quantity": 1000
+              }
+            ],
+            "userLimits": {
+              "maxUsers": 50
+            }
+          },
+          "basePlan": "plan/standard",
+          "newPlanDetails": {
+            "name": "CustomPlan",
+            "description": "Customized SaaS Plan with Limits"
+          }
+        }
+      ],
+      "notes": "Custom SaaS plan for MPO"
+    }
+  ]
+}
+</code></pre><h3>Example 4: MPO Completion (Channel Partner Seller - Adding Markup)</h3>
+<pre class="json-code"><code>{  "$schema": "https://schema.mp.microsoft.com/schema/configure/2022-07-01",
+  "resources": [
+    {
+      "$schema": "https://schema.mp.microsoft.com/schema/private-offer-mpo-channel-partner/2023-07-15",
+      "name": "MPOOriginatorOffer",  // Match originator's name
+      "state": "live",
+      "privateOfferType": "multipartyPromotionChannelPartner",
+      "offerPricingType": "saasNewCustomizedPlans",
+      "variableStartDate": true,
+      "end": "2026-06-30",
+      "acceptBy": "2025-06-30",
+      "preparedBy": "seller@partner.com",
+      "originatorTermsAndConditionsDocs": [  // Read-only from ISV
+        {
+          "sasUrl": "https://blob.storage.azure.com/terms/isv-terms.pdf?sas-token",
+          "fileName": "isv-terms.pdf",
+          "customerFacingDocumentName": "ISV Terms"
+        }
+      ],
+      "termsAndConditionsDocs": [
+        {
+          "sasUrl": "https://blob.storage.azure.com/terms/partner-terms.pdf?sas-token",
+          "fileName": "partner-terms.pdf",
+          "customerFacingDocumentName": "Partner Terms"
+        }
+      ],
+      "notificationContacts": ["seller@partner.com"],
+      "beneficiaries": [  // Read-only
+        {
+          "id": "ac357579-e860-54a6-80b3-66958aea67fe:7471d04e-f696-4d20-af34-fa78d51e419c_2019-05-31",
+          "description": "End Customer"
+        }
+      ],
+      "partners": [  // Read-only
+        {
+          "id": "channel-partner-id",
+          "partnerName": "Channel Partner Inc.",
+          "location": "United States"
+        }
+      ],
+      "originatorPricing": [  // Read-only from ISV
+        {
+          "product": "product/7ba807c8-386a-4efe-80f1-b97bf8a554f8",
+          "discountType": "absolute",
+          "priceDetails": { /* ... / },
+          "basePlan": "plan/standard",
+          "newPlanDetails": { / ... */ }
+        }
+      ],
+      "markupPercentage": 2.5,
+      "notes": "Added 2.5% markup"
+    }
+  ]
+}
+</code></pre><h3>Example 5: VMSR Private Offer (Absolute Pricing)</h3>
+<p>For VMSR, use plan IDs that support reservations; pricing is absolute.</p>
+<pre class="json-code"><code>{  "$schema": "https://schema.mp.microsoft.com/schema/configure/2022-07-01",
+  "resources": [
+    {
+      "$schema": "https://schema.mp.microsoft.com/schema/private-offer/2023-07-15",
+      "name": "VMSROffer",
+      "privateOfferType": "customerPromotion",
+      "state": "live",
+      "offerPricingType": "vmSoftwareReservations",
+      "variableStartDate": false,
+      "start": "2025-01-01",
+      "end": "2027-12-31",
+      "acceptBy": "2024-12-31",
+      "notificationContacts": ["vm@contoso.com"],
+      "beneficiaries": [
+        {
+          "id": "ac357579-e860-54a6-80b3-66958aea67fe:7471d04e-f696-4d20-af34-fa78d51e419c_2019-05-31",
+          "description": "Customer"
+        }
+      ],
+      "pricing": [
+        {
+          "product": "product/vm-product-id",
+          "discountType": "absolute",
+          "priceDetails": {
+            "resourceName": "vmReservationPricing",
+            "$schema": "https://schema.mp.microsoft.com/schema/price-and-availability-private-offer-plan/2023-07-15",
+            "softwareReservation": {
+              "duration": "3Year",
+              "paymentSchedule": "Monthly",
+              "vmPrices": [
+                {
+                  "vmSize": "Standard_D2_v3",
+                  "price": 1000.00,
+                  "quantity": 5
+                }
+              ]
+            }
+          },
+          "basePlan": "plan/reservation-plan"
+        }
+      ],
+      "notes": "3-year VMSR with custom quantity"
+    }
+  ]
+}
+</code></pre><h3>Polling Job Status</h3>
+<p>After POST, response includes <code>jobId</code>. Poll: <code>GET https://graph.microsoft.com/rp/product-ingestion/configure/<jobId>/status?$version=2022-07-01</code></p>
+
+<p>Status values: <code>NotStarted</code>, <code>Running</code>, <code>Completed</code>. On success (<code>jobResult: Succeeded</code>), get <code>resourceURI</code> for offer details.</p>
+
+<h2>Step 3: Retrieve Existing Private Offers</h2>
+
+<ul>
+    <li><strong>List All Private Offers</strong>: <code>GET https://graph.microsoft.com/rp/product-ingestion/private-offer/query?$version=2023-07-15</code></li>
+    <li><strong>Get Specific Offer Details</strong>: <code>GET https://graph.microsoft.com/rp/product-ingestion/private-offer/<id>?$version=2023-07-15</code> or <code>GET https://graph.microsoft.com/rp/product-ingestion/configure/<jobId>?$version=2023-07-15</code></li>
+</ul>
+
+<p>This lists all private offers, including MPOs.</p>
+
+<h2>Step 4: Manage Existing Offers</h2>
+
+<p>Use the same configure endpoint for updates.</p>
+
+<h3>Update an Offer</h3>
+<p>Set <code>state: live</code> and include changes in the payload (for withdrawn offers, etc.).</p>
+
+<p><strong>Example Request Body (Update Pricing):</strong></p>
+<pre class="json-code"><code>{  "$schema": "https://schema.mp.microsoft.com/schema/configure/2022-07-01",
+  "resources": [
+    {
+      "$schema": "https://schema.mp.microsoft.com/schema/private-offer/2023-07-15",
+      "id": "private-offer/existing-id",
+      "name": "ExistingOffer",
+      "privateOfferType": "customerPromotion",
+      "state": "live",
+      // Updated fields...
+      "pricing": [
+        {
+          "product": "product/id",
+          "plan": "plan/id",
+          "discountType": "percentage",
+          "discountPercentage": 20
+        }
+      ]
+    }
+  ]
+}
+</code></pre><h3>Withdraw an Offer</h3>
+<p>Withdraw to remove customer access (pre-acceptance for MPOs).</p>
+
+<p><strong>Example (ISV):</strong></p>
+<pre class="json-code"><code>{  "$schema": "https://schema.mp.microsoft.com/schema/configure/2022-07-01",
+  "resources": [
+    {
+      "$schema": "https://schema.mp.microsoft.com/schema/private-offer/2023-07-15",
+      "id": "private-offer/existing-id",
+      "name": "OfferToWithdraw",
+      "privateOfferType": "multipartyPromotionOriginator",
+      "state": "withdrawn"
+    }
+  ]
+}
+</code></pre><p>For channel partners, use <code>multipartyPromotionChannelPartner</code>.</p>
+
+<h3>Delete an Offer</h3>
+<p>Only for drafts.</p>
+
+<p><strong>Example:</strong></p>
+<pre class="json-code"><code>{  "$schema": "https://schema.mp.microsoft.com/schema/configure/2022-07-01",
+  "resources": [
+    {
+      "$schema": "https://schema.mp.microsoft.com/schema/private-offer/2023-07-15",
+      "id": "private-offer/draft-id",
+      "name": "DraftOffer",
+      "privateOfferType": "customerPromotion",
+      "state": "deleted"
+    }
+  ]
+}
+</code></pre><h2>Step 5: Customer Acceptance and Purchase</h2>
+
+<p>Once submitted (<code>live</code>), share the acceptance link (from response or dashboard). Customer process:</p>
+<ol>
+    <li>Check eligibility and roles using the eligibility report (applicable to MCA, EA, MOSP).</li>
+    <li>Accept in Azure portal > Marketplace > Private offers.</li>
+    <li>Purchase/subscribe (varies by type: SaaS configuration, VM deployment, etc.).</li>
+</ol>
+
+<p>Track status in Partner Center dashboard or via API queries.</p>
+
+<h2>Schemas</h2>
+
+<p>The Private Offer schema defines the structure for API requests. Below is the full JSON schema extracted from the provided documentation (composite; refer to subschemas for details).</p>
+
+<pre class="json-code"><code>{  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.mp.microsoft.com/schema/private-offer/2023-07-15",
+  "title": "Microsoft Product Ingestion Private Offer",
+  "description": "Describes a Private Offer in the Microsoft Product Ingestion API",
+  "allOf": [
+    {
+      "$ref": "https://schema.mp.microsoft.com/schema/resource/2022-07-01"
+    },
+    {
+      "oneOf": [
+        {
+          "$ref": "https://schema.mp.microsoft.com/schema/private-offer-customer/2023-07-15"
+        },
+        {
+          "$ref": "https://schema.mp.microsoft.com/schema/private-offer-csp/2023-07-15"
+        },
+        {
+          "$ref": "https://schema.mp.microsoft.com/schema/private-offer-mpo-channel-partner/2023-07-15"
+        },
+        {
+          "$ref": "https://schema.mp.microsoft.com/schema/private-offer-mpo-originator/2023-07-15"
+        }
+      ]
+    },
+    {
+      "properties": {
+        "offerPricingType": {
+          "type": "string",
+          "enum": [
+            "editExistingOfferPricingOnly",
+            "saasNewCustomizedPlans",
+            "vmSoftwareReservations"
+          ],
+          "default": "editExistingOfferPricingOnly"
+        }
+      },
+      "required": [
+        "offerPricingType"
+      ]
+    },
+    {
+      "if": {
+        "properties": {
+          "offerPricingType": {
+            "const": "vmSoftwareReservations"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "pricing": {
+            "items": {
+              "properties": {
+                "newPlanDetails": {
+                  "not": {
+                    "required": [
+                      "name",
+                      "description"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "https://schema.mp.microsoft.com/schema/resource/2022-07-01": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/resource/2022-07-01",
+      "$comment": "This schema is extended by a resource type schema. We allow additional properties to enable that",
+      "type": "object",
+      "properties": {
+        "resourceName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "id": {
+          "$ref": "https://schema.mp.microsoft.com/schema/durable-id/2022-07-01"
+        },
+        "validations": {
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/validation/2022-07-01"
+          },
+          "readonly": true
+        }
+      },
+      "required": [
+        "$schema"
+      ],
+      "additionalProperties": true
+    },
+    "https://schema.mp.microsoft.com/schema/private-offer-customer/2023-07-15": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/private-offer-customer/2023-07-15",
+      "title": "Microsoft Product Ingestion Private Offer",
+      "description": "Describes a Private Offer in the Microsoft Product Ingestion API",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[^\\!\\u003C\\u003E\\^\\[\\]\\@\\#\\%\\\/\\x00-\\x1F\\x7E-\\xFF]\\u002B$",
+          "maxLength": 128
+        },
+        "privateOfferType": {
+          "type": "string",
+          "const": "customerPromotion"
+        },
+        "upgradedFrom": {
+          "$ref": "https://schema.mp.microsoft.com/schema/private-offer-promotion-reference/2022-07-01"
+        },
+        "variableStartDate": {
+          "type": "boolean"
+        },
+        "start": {
+          "type": "string",
+          "format": "date"
+        },
+        "end": {
+          "type": "string",
+          "format": "date"
+        },
+        "acceptBy": {
+          "type": "string",
+          "format": "date"
+        },
+        "preparedBy": {
+          "type": "string",
+          "format": "email"
+        },
+        "notificationContacts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "live",
+            "deleted"
+          ]
+        },
+        "subState": {
+          "type": "string",
+          "enum": [
+            "pendingAcceptance",
+            "accepted"
+          ]
+        },
+        "termsAndConditionsDocSasUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "beneficiaries": {
+          "type": "array",
+          "maxItems": 1,
+          "items": {
+            "allOf": [
+              {
+                "$ref": "https://schema.mp.microsoft.com/schema/private-offer-beneficiary/2022-07-01"
+              }
+            ],
+            "properties": {
+              "beneficiaryRecipients": {
+                "items": {
+                  "properties": {
+                    "recipientType": {
+                      "const": "billingGroup"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "pricing": {
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-pricing/2023-07-15",
+            "not": {
+              "required": [
+                "markupPercentage"
+              ]
+            }
+          }
+        },
+        "lastModified": {
+          "type": "string",
+          "format": "date"
+        },
+        "acceptanceLinks": {
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-acceptance-link/2022-07-01"
+          }
+        },
+        "eTag": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "state"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "not": {
+              "properties": {
+                "start": {
+                  "const": null
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "variableStartDate": {
+                "not": {
+                  "const": true
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "not": {
+              "properties": {
+                "variableStartDate": {
+                  "const": true
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "start"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "live"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "beneficiaries": {
+                "minItems": 1
+              },
+              "pricing": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "end",
+              "acceptBy",
+              "beneficiaries",
+              "pricing"
+            ]
+          }
+        }
+      ]
+    },
+    "https://schema.mp.microsoft.com/schema/private-offer-csp/2023-07-15": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/private-offer-csp/2023-07-15",
+      "title": "Microsoft Product Ingestion Private Offer",
+      "description": "Describes a Private Offer in the Microsoft Product Ingestion API",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[^\\!\\u003C\\u003E\\^\\[\\]\\@\\#\\%\\\/\\x00-\\x1F\\x7E-\\xFF]\\u002B$",
+          "maxLength": 128
+        },
+        "privateOfferType": {
+          "type": "string",
+          "const": "cspPromotion"
+        },
+        "upgradedFrom": {
+          "$ref": "https://schema.mp.microsoft.com/schema/private-offer-promotion-reference/2022-07-01"
+        },
+        "variableStartDate": {
+          "type": "boolean"
+        },
+        "start": {
+          "type": "string",
+          "format": "date"
+        },
+        "end": {
+          "type": "string",
+          "format": "date"
+        },
+        "preparedBy": {
+          "type": "string",
+          "format": "email"
+        },
+        "notificationContacts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "live",
+            "withdrawn",
+            "deleted"
+          ]
+        },
+        "beneficiaries": {
+          "type": "array",
+          "maxItems": 150,
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-beneficiary/2022-07-01",
+            "properties": {
+              "beneficiaryRecipients": {
+                "items": {
+                  "properties": {
+                    "recipientType": {
+                      "const": "cspCustomer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "pricing": {
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-pricing/2023-07-15",
+            "not": {
+              "required": [
+                "markupPercentage"
+              ]
+            }
+          }
+        },
+        "lastModified": {
+          "type": "string",
+          "format": "date"
+        },
+        "eTag": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "state"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "termsAndConditionsDocSasUrl"
+            ]
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "acceptBy"
+            ]
+          }
+        },
+        {
+          "if": {
+            "not": {
+              "properties": {
+                "start": {
+                  "const": null
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "variableStartDate": {
+                "not": {
+                  "const": true
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "not": {
+              "properties": {
+                "variableStartDate": {
+                  "const": true
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "start"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "live"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "beneficiaries": {
+                "minItems": 1
+              },
+              "pricing": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "end",
+              "beneficiaries",
+              "pricing"
+            ]
+          }
+        }
+      ]
+    },
+    "https://schema.mp.microsoft.com/schema/private-offer-mpo-channel-partner/2023-07-15": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://schema.mp.microsoft.com/schema/private-offer-mpo-channel-partner/2023-07-15",
+      "title": "Microsoft Product Ingestion MultiParty Private Offer",
+      "description": "Describes a MultiParty Private Offer in the Microsoft Product Ingestion API",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[\\x20-\\x7F]\\u002B[^\\!\\u003E\\^\\[\\u003E\\!\\@\\#\\%\\\/\\]]$",
+          "maxLength": 128
+        },
+        "privateOfferType": {
+          "type": "string",
+          "const": "multipartyPromotionChannelPartner"
+        },
+        "variableStartDate": {
+          "type": "boolean"
+        },
+        "start": {
+          "type": "string",
+          "format": "date"
+        },
+        "end": {
+          "type": "string",
+          "format": "date"
+        },
+        "acceptBy": {
+          "type": "string",
+          "format": "date"
+        },
+        "notificationContacts": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "preparedBy": {
+          "type": "string",
+          "format": "email"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "live"
+          ]
+        },
+        "subState": {
+          "type": "string",
+          "enum": [
+            "pendingAcceptance",
+            "accepted"
+          ]
+        },
+        "originatorTermsAndConditionsDocs": {
+          "description": "The combined size of originatorTermsAndConditionsDocs and termsAndConditionsDocs cannot exceed 5. Objects",
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/terms-and-conditions-document/2022-07-01"
+          },
+          "maxItems": 5
+        },
+        "termsAndConditionsDocs": {
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/terms-and-conditions-document/2022-07-01"
+          },
+          "maxItems": 5
+        },
+        "beneficiaries": {
+          "type": "array",
+          "maxItems": 1,
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-beneficiary/2022-07-01"
+          }
+        },
+        "partners": {
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-partner/2022-07-01"
+          }
+        },
+        "originatorPricing": {
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-pricing/2023-07-15"
+          }
+        },
+        "markupPercentage": {
+          "type": "number",
+          "minimum": 0
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "lastModified": {
+          "type": "string",
+          "format": "date"
+        },
+        "acceptanceLinks": {
+          "type": "array",
+          "items": {
+            "$ref": "https://schema.mp.microsoft.com/schema/private-offer-acceptance-link/2022-07-01"
+          }
+        },
+        "eTag": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "state"
+      ]
+    }
+  }
+}
+</code></pre><p>For full subschemas (e.g., pricing, beneficiaries), refer to the linked $ref URLs in the schema or Microsoft docs.</p>
+
+<h2>Troubleshooting</h2>
+
+<p>Common issues and tips:</p>
+<ul>
+    <li><strong>401 Unauthorized</strong>: Invalid/expired token. Refresh using client credentials.</li>
+    <li><strong>400 Bad Request</strong>: Schema validation failed. Check required fields, patterns (e.g., name max 128 chars, no special chars), and enums. Use tools like JSON Schema validators.</li>
+    <li><strong>Error Parsing</strong>: Responses include error details like "not found" or "validation errors."</li>
+    <li><strong>Job Failures</strong>: Poll jobId; check "errors" array in status response.</li>
+    <li><strong>MPO Issues</strong>: Ensure ISV submits first; channel partner can't edit ISV fields. Withdraw to edit.</li>
+    <li><strong>Limitations</strong>: Max 10 products/plans per offer; max 5 T&C docs; no updates to withdrawn offers in draft state—resubmit as live.</li>
+    <li><strong>Resources</strong>: Use schemas like <code>https://schema.mp.microsoft.com/schema/private-offer/2023-07-15</code>. For support, open a ticket in Partner Center with offer ID.</li>
+</ul>
+
+<p>If issues persist, check Partner Center dashboard for sub-statuses (e.g., pending authorization).</p>
+
+<h2>Best Practices</h2>
+<ul>
+    <li>Start with drafts (<code>state: draft</code>) for testing.</li>
+    <li>Use variableStartDate for flexibility.</li>
+    <li>Monitor payouts and analytics in Partner Center > Marketplace Insights.</li>
+    <li>For renewals, set <code>customerContractRenewal: true</code> for reduced fees.</li>
+    <li>Automate with scripts: Handle token refresh, job polling (up to 20 minutes for completion), and error retries.</li>
+    <li>Comply with market restrictions (e.g., US/UK/Canada for MPOs).</li>
+</ul>
+
+<p>This guide covers the full lifecycle. For UI alternatives, use Partner Center dashboard, but API enables automation for large-scale management.</p></body>
+</html>
+
